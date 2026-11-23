@@ -1,0 +1,20 @@
+{
+  "name": "implementation-plan",
+  "version": "1.0.0",
+  "description": "A Claude Code skill that writes a researched, verifiable implementation plan for one ticket: verified file:line context, decisions with rejected alternatives, one-commit steps with Verify lines, risks, end-to-end verification and a session log.",
+  "author": {
+    "name": "lllmoseslll",
+    "url": "https://github.com/lllmoseslll"
+  },
+  "homepage": "https://github.com/lllmoseslll/claude-implementation-plan",
+  "repository": "https://github.com/lllmoseslll/claude-implementation-plan",
+  "license": "MIT",
+  "keywords": [
+    "skill",
+    "planning",
+    "implementation-plan",
+    "execution-plan",
+    "git",
+    "workflow"
+  ]
+}

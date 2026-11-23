@@ -1,0 +1,15 @@
+{
+  "name": "claude-implementation-plan",
+  "owner": {
+    "name": "lllmoseslll",
+    "url": "https://github.com/lllmoseslll"
+  },
+  "plugins": [
+    {
+      "name": "implementation-plan",
+      "source": "./",
+      "description": "Writes a researched, verifiable implementation plan for one ticket, based on the latest remote integration branch.",
+      "version": "1.0.0"
+    }
+  ]
+}
