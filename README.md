@@ -66,7 +66,7 @@ One Markdown file, `plans/<ticket-id>-<slug>.md`, with these sections:
 
 | § | Section | What makes it different |
 |:-:|---|---|
-| 0 | **Contract** | The branch name, the base SHA from a freshly fetched `origin/<integration>`, the commit format and the PR target |
+| 0 | **Contract** | The branch name, the base SHA from a freshly fetched `origin/<integration>`, the commit format, the PR target, and the reviewer and implementer models |
 | 1 | **Context** | Every claim cites `path/to/file.ext:line`, read at that SHA. A search that found nothing counts as a finding too |
 | 2 | **Research** | Each borrowed pattern or library, and *why it applies here* |
 | 3 | **Decisions** | Numbered, each with a rejected alternative. An open question gets a safe default and a gating step instead of a silent guess |
@@ -115,7 +115,7 @@ flowchart LR
 5. **Writes** the plan and lists every open question with the step it blocks.
 
 > [!NOTE]
-> The skill never creates the branch, commits or pushes. Those stay your call.
+> The planning run never creates the branch, commits or pushes. Those stay your call.
 
 <a id="install"></a>
 
@@ -284,7 +284,7 @@ the skill up from its description. You can also start it by name:
 ## 🎛 Customise
 
 **Conventions.** The template assumes the conventions below. Change template §0 if your team's
-differ.
+differ, along with the places that repeat them (see the [FAQ](#faq)).
 
 | | Convention |
 |---|---|
@@ -292,16 +292,17 @@ differ.
 | Commit | `<TICKET-ID> <Sentence case imperative description>`, under 72 characters, no trailing period |
 | Shape | One ticket · one branch · one commit per step · one PR |
 
-**Model roles.** The skill names two roles, not models, so it works the same in every agent:
+**Model roles.** The skill names two roles, not models, so it works in every agent:
 
 | Role | Does | Claude Code | Codex | Antigravity | Any other agent |
 |---|---|---|---|---|---|
-| **Reviewer** | Plans, decides, reviews each step | Latest Fable, else Opus | Your strongest model, high reasoning | `pro` | Strongest model it offers |
-| **Implementer** | Builds one step at a time | Latest Sonnet, high effort | A faster model, or the same one | `flash` | A cheaper capable model |
+| **Reviewer** | Plans, decides, reviews each step | Latest Fable, else Opus | Strongest model, high reasoning | `pro` | Strongest model it offers |
+| **Implementer** | Builds one step at a time | Latest Sonnet, high effort | A faster model, or the same one at lower effort | `flash` | A cheaper capable model |
 
 At the start of a plan the agent picks a real model for each role and records both in the plan's
 §0. The rest of the plan says *reviewer* and *implementer*, so it stays correct if the models
-change. To choose your own models, name them in your request or in your project's `CLAUDE.md`,
+change; only the Session log records which models actually ran each step. To choose your own
+models, name them in your request or in your own or your project's `CLAUDE.md`,
 `AGENTS.md` or `GEMINI.md`; that wins over the defaults. An agent with no subagents builds each
 step itself, then reviews it as the reviewer before committing.
 
@@ -321,8 +322,9 @@ agent you run it in.
 <details>
 <summary><b>Will it change my code or push anything?</b></summary>
 
-No. It reads your code and writes one Markdown file to your `plans/` repo. It never creates the
-branch, commits or pushes; those stay your call.
+No. The planning run reads your code and writes one Markdown file to your `plans/` repo (creating
+that repo the first time; see the next question). It never creates the branch, commits or pushes;
+those stay your call.
 
 </details>
 
@@ -338,8 +340,10 @@ your `.gitignore` is not touched.
 <details>
 <summary><b>My team doesn't use Jira, <code>develop</code> or this commit format.</b></summary>
 
-Change template §0 to match. The ticket can come from any tracker, the integration branch can be
-`dev` or whatever your repo names, and the commit rules are one table.
+Change template §0 to match, and replace "Jira" and `develop` where the template repeats them
+(its opening paragraph, §1's heading, §9 and the appendix). The skill already picks the integration branch from your
+remote (`develop`, else the one your repo names). Ticket codes must look like `KEY-123`. For a different commit format, change §0.2 and the
+example messages the template repeats (§0.4, §4, §7, §8, §9 and the appendix).
 
 </details>
 

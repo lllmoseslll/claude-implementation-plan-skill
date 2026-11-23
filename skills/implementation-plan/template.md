@@ -15,7 +15,7 @@ where that work is recorded, and that it turns it into an ordered, verifiable bu
 a standard execution plan: verified Context with `file:line`, a Research section
 that says why each borrowed pattern applies *here*, numbered Decisions naming rejected alternatives,
 one commit per step with a Verify line, then Risks, end-to-end Verification, per-step Execution
-prompts with model selection, and a Session log appended per step.
+prompts naming who builds and who reviews, and a Session log appended per step.
 
 ---
 
@@ -34,9 +34,9 @@ prompts with model selection, and a Session log appended per step.
 | PR target | `develop` |
 | Commit message format | `<TICKET-ID> <Sentence case imperative description>` |
 | Steps in this plan | `<n>` — one commit each |
-| Reviewers | `<at least one team member — not the author>` |
-| AI co-author trailers | `<none | as configured>` — declare it once here, apply it to every commit |
-| Reviewer model | `<model>` — plans, decides and reviews every step (e.g. the latest Fable in Claude Code, `pro` in Antigravity) |
+| PR reviewers | `<at least one team member — not the author>` |
+| AI co-author trailers | `<none \| as configured>` — declare it once here, apply it to every commit |
+| Reviewer model | `<model, and the fallback if it is refused>` — plans, decides and reviews every step (e.g. the latest Fable, else the latest Opus, in Claude Code; `pro` in Antigravity) |
 | Implementer model | `<model and effort>` — builds each step (e.g. the latest Sonnet at high effort in Claude Code, `flash` in Antigravity) |
 
 ### 0.1 Branch rules (ruleset-enforced)
@@ -310,7 +310,7 @@ commands this repo uses, green\>.
 >   boundaries, migrations and anything that can silently destroy data, security, defaults that
 >   contradict a specification, production. The implementer still builds it; before committing, the
 >   reviewer gets a second opinion (the agent's advisor tool if it has one, else a fresh subagent on
->   the reviewer model asked for a diagnosis only, else a second independent review pass), and the
+>   the reviewer model asked to review the diff and advise only, else a second independent review pass), and the
 >   parenthetical says what to check.
 > - A step that is judgment rather than building (a browser walk against designs, a review, a
 >   release decision) says which part the implementer runs and which part the reviewer decides.
@@ -334,8 +334,9 @@ commands this repo uses, green\>.
 >   count, with before/after totals so the delta is checkable.
 > - **Record departures from the plan explicitly.** If a Decision's *mechanism* turned out to be
 >   impossible, say so, say what replaced it, and say whether the Decision's *intent* survived.
-> - Say which models built and reviewed the step, by their real names (e.g. "built by Sonnet 5.5
->   high; reviewed by Fable 5.2"), what the review changed or sent back, and whether a second
+> - Say which models built and reviewed the step, by their real names (e.g. "built by
+>   \<implementer model\>, high effort; reviewed by \<reviewer model\>"); this is the one place
+>   outside §0 that names a model. Say what the review changed or sent back, and whether a second
 >   opinion was taken.
 > - Record work done that the plan did not ask for, marked as such.
 > - Record environment traps that will bite the next person (toolchain versions, a red suite that is
@@ -376,7 +377,7 @@ is already documented elsewhere — the next person reads this file.\>
 - **Title:** `<TICKET-ID> <Sentence case description>` — same shape as a commit message (§0.2).
 - **Description:** what changed and why, the phases covered, and a link to this plan file.
 - **Jira:** PR linked to `<TICKET-ID>`; ticket moved out of In Progress.
-- **Reviewers:** at least one team member. **Do not merge your own pull request.**
+- **PR reviewers:** at least one team member. **Do not merge your own pull request.**
 - **As author:** respond to every comment before requesting re-review; do not resolve reviewer
   comments yourself; if you disagree, discuss it rather than silently ignoring it.
 - **As reviewer:** review within one business day where possible; approve only when genuinely
@@ -404,6 +405,8 @@ is already documented elsewhere — the next person reads this file.\>
 - [ ] Every commit message in §7 checked against §0.2 (uppercase ticket, sentence case, imperative,
       under 72 chars, no period)
 - [ ] Risks name the cut line
+- [ ] §0 names the reviewer model and the implementer model; §1 to §7 use the role names only
+- [ ] §7 has one entry per step, and every risky step is marked "+ second opinion"
 
 **Per step, before committing**
 
@@ -425,4 +428,4 @@ is already documented elsewhere — the next person reads this file.\>
 - [ ] Quality gates green on the branch head
 - [ ] Session log has an entry for every landed step
 - [ ] Steps not built are marked paused with a reason, not silently absent
-- [ ] PR title, description, Jira link and reviewer set per §9
+- [ ] PR title, description, Jira link and PR reviewers set per §9

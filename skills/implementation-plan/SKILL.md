@@ -27,23 +27,25 @@ reads `SKILL.md` skills, so it names **roles**, not models:
 
 Resolve each role to a real model once, at the start, and record both in template §0
 ("Reviewer model" and "Implementer model"). Everywhere else, the plan says *reviewer* and
-*implementer*, never a model name, so it stays correct if the models change.
+*implementer*, never a model name, so it stays correct if the models change. The one exception is
+the Session log (template §8), which records the models that actually ran each step.
 
-1. **The user or the project says so:** a model named in the request, or in the project's agent
-   instructions file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md` or the agent's equivalent), wins.
+1. **The user or the project says so:** a model named in the request, or in the user's or project's
+   agent instructions file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md` or the agent's equivalent), wins.
 2. **Otherwise use the default for the agent you are running in:**
 
    | Agent | Reviewer | Implementer | How the implementer is started |
    |---|---|---|---|
-   | Claude Code | The latest Fable; if it is not available, the latest Opus | The latest Sonnet at high effort | Agent tool with `model: "sonnet"`, `effort: "high"` |
-   | OpenAI Codex | Your strongest model at high reasoning effort | A faster model, or the same one at lower effort | A subagent; set its model in `.codex/agents/<name>.toml` (`model`, `model_reasoning_effort`), otherwise it inherits yours |
-   | Google Antigravity | `pro` | `flash`, or `pro` for a hard step | A subagent via `define_subagent` / `invoke_subagent` with `model` |
+   | Claude Code | The latest Fable; if it is not available, the latest Opus (as a subagent: Agent tool with `model: "fable"`, else `"opus"`) | The latest Sonnet at high effort | Agent tool with `model: "sonnet"`, `effort: "high"` |
+   | OpenAI Codex | The strongest model the account offers, at high reasoning effort | A faster model, or the same one at lower effort | A subagent. It uses the model in `.codex/agents/<name>.toml` (`model`, `model_reasoning_effort`) if one is defined; otherwise it inherits the session's model (template §0 then names that model for the implementer). Do not create that file without asking |
+   | Google Antigravity | `pro` | `flash` | A subagent via `define_subagent` / `invoke_subagent` with `model` |
    | Any other agent | The strongest model it offers | A cheaper capable model | Its subagent feature, if it has one |
 
 3. **A model is not available** (the account does not offer it, or a call with it is refused):
    use the next strongest one for that role and say once which model ran it.
 4. **The session is not on the reviewer model:** hand reviewer work (planning, reviews, hard
-   judgments) to a subagent started on the reviewer model, where the agent allows it.
+   judgments) to a subagent started on the reviewer model, where the agent allows it. Where it does
+   not, the session's model does the reviewer work and template §0 records that model.
 
 ### How the work is split
 
@@ -54,7 +56,7 @@ Resolve each role to a real model once, at the start, and record both in templat
   Decision. When it hits one, it stops and reports.
 - **No subagents?** If the agent cannot start subagents, it builds each step itself, then switches
   to the reviewer's checks below before committing. The roles stay separate even when one model
-  plays both.
+  plays both. Both template §0 rows then name the session's model.
 - **Every step is reviewed before its commit.** The reviewer reads the whole diff, not the
   implementer's summary, re-runs the step's Verify line itself, checks every claim the implementer
   wrote into code comments and the Session log against the code, and only then commits. Anything
@@ -64,10 +66,10 @@ Resolve each role to a real model once, at the start, and record both in templat
   isolation and permissions, migrations and anything that can destroy data, security, production.
   Before that commit, the reviewer asks for a second opinion, using the first of these that exists:
   the agent's advisor tool (Claude Code's `advisor`), a fresh subagent on the reviewer model asked
-  for a diagnosis only, or a second independent review pass of the whole diff. The step's §7 entry
-  says so.
+  to review the diff and advise only, or a second independent review pass of the whole diff. The
+  step's template §7 entry is marked "+ second opinion".
 - **Stuck:** if the implementer fails the same Verify check twice, the reviewer diagnoses it (with
-  a second opinion when one is available) before a third attempt, and either rewrites the brief or
+  a second opinion, chosen as for a risky step) before a third attempt, and either rewrites the brief or
   takes the step over itself. The Session log says which.
 - **Because the implementer builds what the plan says, the plan must leave it nothing to decide.**
   Every choice is a Decision in template §3 or an Open question with a gating step; a step that
@@ -96,15 +98,15 @@ facts and branch separately in template §0. The shared plans repo is never a pr
 
 **Plans are always based on the latest remote integration branch**, never on a stale local copy.
 First identify the integration branch (`develop` if it exists on the remote, otherwise the branch
-the repo's agent instructions file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) or docs name, e.g. `dev`; never `main` for feature work). Then fetch — a
-read-only operation, no push — and record the real values; they go in template §0:
+the repo's agent instructions file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) or docs name, e.g.
+`dev`; never `main` for feature work). Then fetch — a read-only operation, no push — and record the real values; they go in template §0:
 
 ```
 git rev-parse --show-toplevel
 git branch --show-current
 git fetch origin                                   # read-only; refresh the remote branches
 INT=develop; git rev-parse --verify -q origin/$INT >/dev/null || INT=dev   # adjust if the repo names another
-git rev-parse --short origin/$INT                  # the base SHA recorded in §0
+git rev-parse --short origin/$INT                  # the base SHA recorded in template §0
 git rev-list --count $INT..origin/$INT             # how far the local copy is behind (report if > 0)
 git log --oneline -10 origin/$INT
 ```
@@ -138,8 +140,8 @@ parent for it:
 d=$(pwd); while :; do [ -d "$d/plans/.git" ] && { echo "$d/plans"; break; }; p=$(dirname "$d"); [ "$p" = "$d" ] && break; d=$p; done
 ```
 
-A location stated in the project's agent instructions file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`; root or repo), e.g. "plans live in `../plans/`",
-wins over the search.
+A location stated in the project's agent instructions file (`CLAUDE.md`, `AGENTS.md`,
+`GEMINI.md`; root or repo), e.g. "plans live in `../plans/`", wins over the search.
 
 - **If a plans repo is found, the plan goes there — always**, even when the skill was invoked from
   deep inside one product repo. Leave every product repo as it is: no `plans/` folder created in
@@ -203,7 +205,7 @@ Copy `template.md`'s structure. The plan is filled when:
   and exact commit message per step, every commit message checked against template §0.2, and the
   cut line named in Risks;
 - template §0 records the reviewer and implementer models chosen under "Pick the models", and
-  no other section names a model;
+  template §1 to §7 name no model;
 - every step can be built by the implementer from its text alone, and template §7 names, per
   step, the implementer, the reviewer and, for a risky step, the second opinion before commit (see
   "Who does what").
