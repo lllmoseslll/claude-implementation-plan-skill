@@ -1,37 +1,128 @@
-# implementation-plan
+<div align="center">
 
-An [Agent Skill](https://agentskills.io) that turns one ticket into a **researched, verifiable
-implementation plan**, written to your project's private `plans/` repo. It was built for
-[Claude Code](https://claude.com/claude-code), and it installs in Codex, Antigravity, Gemini CLI,
-Cursor, GitHub Copilot, OpenCode and any other agent that reads `SKILL.md` skills.
+# 📐 implementation-plan
 
-A plan from this skill is not a to-do list. It is built against the code itself:
+**Turn one ticket into a researched, verifiable implementation plan,
+checked against your real code before a single line is written.**
 
-- **§0 Contract:** the branch name, the base SHA from a freshly fetched `origin/<integration>`, the
-  commit-message format and the PR target.
-- **§1 Context:** every claim cites `path/to/file.ext:line`, read at that SHA. A grep that found
-  nothing counts as a finding too.
-- **§2 Research:** each borrowed pattern or library, and *why it applies here*.
-- **§3 Decisions:** numbered, each with a rejected alternative. An open question gets a
-  conservative default and a gating step, so the plan never guesses silently.
-- **§4 Steps:** one commit per step, each with a **Verify:** line of observable checks and the
-  exact commit message.
-- **§5 Risks:** includes the cut line, which says where to stop if the plan has to be cut.
-- **§6 End-to-end verification, §7 Execution prompts, §8 Session log, §9 PR,** and a pre-flight
-  checklist.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Agent Skill](https://img.shields.io/badge/Agent%20Skill-SKILL.md-8A2BE2)](https://agentskills.io)
+[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757)](#claude-code)
+[![Works with 7+ agents](https://img.shields.io/badge/works%20with-7%2B%20agents-2ea44f)](#install)
 
-It is built for a "strong model plans and reviews, Sonnet builds" workflow. The plan leaves the
-implementer nothing to decide, and every step is reviewed before it is committed.
+[Quick start](#quick-start) · [What you get](#what-you-get) · [How it works](#how-it-works) · [Install](#install) · [Use](#use) · [Customise](#customise)
 
-## Install
+</div>
 
-Pick the agent you use. Each one only needs the `skills/implementation-plan/` folder, with
-`SKILL.md` and `template.md` kept together and the folder still named `implementation-plan`.
+---
 
-### Any agent: one command (`npx skills`)
+Most AI-written plans are to-do lists written from memory. This skill makes your agent **read the
+code first**. Every claim in the plan cites `file:line`, every decision names the alternative it
+rejected, and every step is one commit with a check you can run.
+
+The plan is written to your project's private `plans/` repo and leaves nothing for the implementer
+to guess. A cheaper model can build it step by step while a stronger one reviews each commit.
+
+**Works with:** Claude Code · OpenAI Codex · Google Antigravity · Gemini CLI · Cursor · GitHub
+Copilot · OpenCode, and any other agent that reads `SKILL.md` skills.
+
+<a id="quick-start"></a>
+
+## ⚡ Quick start
+
+```bash
+npx skills add lllmoseslll/claude-implementation-plan-skill -a claude-code -a codex -a antigravity
+```
+
+Then ask your agent:
+
+> Write an implementation plan for PROJ-123
+
+Using Claude Code? You can also install it as a plugin. See [Claude Code](#claude-code).
+
+<a id="what-you-get"></a>
+
+## 📋 What you get
+
+One Markdown file, `plans/<ticket-id>-<slug>.md`, with these sections:
+
+| § | Section | What makes it different |
+|:-:|---|---|
+| 0 | **Contract** | The branch name, the base SHA from a freshly fetched `origin/<integration>`, the commit format and the PR target |
+| 1 | **Context** | Every claim cites `path/to/file.ext:line`, read at that SHA. A search that found nothing counts as a finding too |
+| 2 | **Research** | Each borrowed pattern or library, and *why it applies here* |
+| 3 | **Decisions** | Numbered, each with a rejected alternative. An open question gets a safe default and a gating step instead of a silent guess |
+| 4 | **Steps** | One commit per step, each with a **Verify:** line of checks you can observe and the exact commit message |
+| 5 | **Risks** | Each tied to a step, including the **cut line**: where to stop if the plan has to be cut |
+| 6 | **End-to-end verification** | The acceptance journeys for the whole branch, run before the PR |
+| 7 | **Execution prompts** | Who builds and who reviews each step, in landing order |
+| 8 | **Session log** | Filled in as each step lands: what the plan got wrong, and the tests that prove it now works |
+| 9 | **Pull request** | The title, description and review rules |
+
+<details>
+<summary><b>See an example step</b></summary>
+
+```markdown
+#### Step 3 — Reject requests over the tenant's rate limit (D2; FR-04).
+Add `RateLimitFilter` in `api/src/main/java/.../filter/RateLimitFilter.java`, registered after
+authentication. Over the limit it returns `429` with a `Retry-After` header and the standard
+error body. Do not touch `PublicHealthController`, which must stay unthrottled.
+**Verify:** `RateLimitFilterTest` passes 6 tests including tenant B unaffected by tenant A's
+burst; `/health` returns 200 under load; `./gradlew check` green.
+
+**Commit:** `PROJ-123 Add per-tenant rate limiting`
+```
+
+</details>
+
+<a id="how-it-works"></a>
+
+## ⚙️ How it works
+
+```mermaid
+flowchart LR
+    A[Ticket code] --> B[Fetch latest<br/>origin/develop]
+    B --> C[Find or create<br/>plans/ repo]
+    C --> D[Read the code<br/>at that SHA]
+    D --> E[Fill every<br/>section]
+    E --> F[plans/proj-123-slug.md<br/>+ open questions]
+```
+
+1. **Asks** for the ticket code (if you didn't give one) and what the ticket is asking for.
+2. **Fetches** the latest remote integration branch (`develop`, else `dev`) and records its SHA.
+3. **Finds** the project's `plans/` repo by walking up from the working directory. If there is
+   none, it creates one at the project root and keeps it out of the product repo with
+   `.git/info/exclude`.
+4. **Researches** the code at that SHA and fills every mandatory section of the template.
+5. **Writes** the plan and lists every open question with the step it blocks.
+
+> [!NOTE]
+> The skill never creates the branch, commits or pushes. Those stay your call.
+
+<a id="install"></a>
+
+## 📦 Install
+
+Every agent needs the same folder, `skills/implementation-plan/`. Keep `SKILL.md` and
+`template.md` together and keep the folder named `implementation-plan`.
+
+| Agent | Fastest install |
+|---|---|
+| **Any agent** | `npx skills add lllmoseslll/claude-implementation-plan-skill -a <agent>` |
+| **Claude Code** | `/plugin marketplace add lllmoseslll/claude-implementation-plan-skill` |
+| **OpenAI Codex** | `npx skills add lllmoseslll/claude-implementation-plan-skill -a codex -g` |
+| **Google Antigravity** | `npx skills add lllmoseslll/claude-implementation-plan-skill -a antigravity -g` |
+| **Gemini CLI** | `gemini skills install <repo-url> --path skills/implementation-plan` |
+| **GitHub Copilot** | `gh skill install lllmoseslll/claude-implementation-plan-skill implementation-plan` |
+| **Cursor · OpenCode** | `npx skills add … -a cursor` or `-a opencode` |
+
+Open your agent below for the full steps and the manual copy option.
+
+<details>
+<summary><b>Any agent: <code>npx skills</code></b></summary>
 
 The [`skills`](https://github.com/vercel-labs/skills) CLI installs the skill for one or more
-agents. It needs Node.js.
+agents at once. It needs Node.js.
 
 ```bash
 # Into the current project, for the agents you name
@@ -44,14 +135,19 @@ npx skills add lllmoseslll/claude-implementation-plan-skill -a codex -g
 npx skills add lllmoseslll/claude-implementation-plan-skill -l
 ```
 
-Common agent names for `-a`: `claude-code`, `codex`, `antigravity`, `gemini-cli`, `cursor`,
-`github-copilot` and `opencode`. Add `--copy` to copy files instead of symlinking them, which is
-safer on Windows. The CLI sends the repo and skill name as anonymous usage stats; set
-`DISABLE_TELEMETRY=1` to turn that off.
+- **Agent names for `-a`:** `claude-code`, `codex`, `antigravity`, `gemini-cli`, `cursor`,
+  `github-copilot`, `opencode`.
+- **On Windows,** add `--copy` to copy the files instead of symlinking them.
+- **Privacy:** the CLI sends the repo and skill name as anonymous usage stats. Set
+  `DISABLE_TELEMETRY=1` to turn that off.
 
-### Claude Code
+</details>
 
-As a plugin (recommended), inside Claude Code:
+<a id="claude-code"></a>
+<details>
+<summary><b>Claude Code</b></summary>
+
+**As a plugin (recommended),** inside Claude Code:
 
 ```
 /plugin marketplace add lllmoseslll/claude-implementation-plan-skill
@@ -60,7 +156,7 @@ As a plugin (recommended), inside Claude Code:
 
 To update later, run `/plugin marketplace update claude-implementation-plan-skill`.
 
-Or copy the folder in by hand:
+**Or copy the folder by hand:**
 
 ```bash
 git clone https://github.com/lllmoseslll/claude-implementation-plan-skill.git
@@ -70,14 +166,17 @@ cp -r claude-implementation-plan-skill/skills/implementation-plan ~/.claude/skil
 
 To use it in one project only, copy it into that project's `.claude/skills/` instead.
 
-### OpenAI Codex
+</details>
+
+<details>
+<summary><b>OpenAI Codex</b></summary>
 
 ```bash
 npx skills add lllmoseslll/claude-implementation-plan-skill -a codex -g
 ```
 
-Or copy the folder by hand. Codex reads `~/.agents/skills/` for all projects and `.agents/skills/`
-inside a project:
+**Or copy the folder by hand.** Codex reads `~/.agents/skills/` for all projects and
+`.agents/skills/` inside a project.
 
 ```bash
 git clone https://github.com/lllmoseslll/claude-implementation-plan-skill.git
@@ -85,14 +184,17 @@ mkdir -p ~/.agents/skills
 cp -r claude-implementation-plan-skill/skills/implementation-plan ~/.agents/skills/
 ```
 
-### Google Antigravity
+</details>
+
+<details>
+<summary><b>Google Antigravity</b></summary>
 
 ```bash
 npx skills add lllmoseslll/claude-implementation-plan-skill -a antigravity -g
 ```
 
-Or copy the folder by hand. Antigravity reads `~/.gemini/config/skills/` for all projects and
-`.agents/skills/` inside a project. Run `/skills reload` afterwards if it was already open.
+**Or copy the folder by hand.** Antigravity reads `~/.gemini/config/skills/` for all projects and
+`.agents/skills/` inside a project. If Antigravity was already open, run `/skills reload`.
 
 ```bash
 git clone https://github.com/lllmoseslll/claude-implementation-plan-skill.git
@@ -100,7 +202,10 @@ mkdir -p ~/.gemini/config/skills
 cp -r claude-implementation-plan-skill/skills/implementation-plan ~/.gemini/config/skills/
 ```
 
-### Gemini CLI
+</details>
+
+<details>
+<summary><b>Gemini CLI</b></summary>
 
 ```bash
 gemini skills install https://github.com/lllmoseslll/claude-implementation-plan-skill.git \
@@ -109,7 +214,10 @@ gemini skills install https://github.com/lllmoseslll/claude-implementation-plan-
 
 Or copy the folder into `~/.gemini/skills/` (all projects) or `.gemini/skills/` (one project).
 
-### GitHub Copilot
+</details>
+
+<details>
+<summary><b>GitHub Copilot</b></summary>
 
 ```bash
 gh skill install lllmoseslll/claude-implementation-plan-skill implementation-plan --scope user
@@ -117,7 +225,10 @@ gh skill install lllmoseslll/claude-implementation-plan-skill implementation-pla
 
 Or copy the folder into `~/.copilot/skills/` (all projects) or `.github/skills/` (one project).
 
-### Cursor and OpenCode
+</details>
+
+<details>
+<summary><b>Cursor and OpenCode</b></summary>
 
 Use `npx skills add … -a cursor` or `-a opencode`, or copy the folder by hand:
 
@@ -126,66 +237,64 @@ Use `npx skills add … -a cursor` or `-a opencode`, or copy the folder by hand:
 | Cursor | `~/.cursor/skills/` | `.cursor/skills/` |
 | OpenCode | `~/.config/opencode/skills/` | `.opencode/skills/` |
 
-### Tip: one folder for every agent in a project
+</details>
 
-Every agent above also reads `.agents/skills/` inside a project. If your team uses several agents,
-put the skill there once and commit it with the project:
+> [!TIP]
+> **Team on several agents?** Every agent above also reads `.agents/skills/` inside a project. Put
+> the skill there once and commit it with the project:
+>
+> ```bash
+> mkdir -p .agents/skills
+> cp -r claude-implementation-plan-skill/skills/implementation-plan .agents/skills/
+> ```
 
-```bash
-mkdir -p .agents/skills
-cp -r claude-implementation-plan-skill/skills/implementation-plan .agents/skills/
-```
+<a id="use"></a>
 
-## Use
+## 🚀 Use
 
-Ask your agent to plan a ticket, for example "write an implementation plan for PROJ-123". Agents
-pick the skill up from its description. You can also start it by name:
+Ask your agent to plan a ticket, for example *"write an implementation plan for PROJ-123"*. It picks
+the skill up from its description. You can also start it by name:
 
 | Agent | Command |
 |---|---|
 | Claude Code | `/implementation-plan PROJ-123` |
 | Codex | `$implementation-plan PROJ-123`, or pick it from `/skills` |
-| Others | ask for an implementation plan, or use the agent's skills menu |
+| Others | Ask for an implementation plan, or use the agent's skills menu |
 
-The skill:
+<a id="customise"></a>
 
-1. asks for the ticket code (if you didn't give one) and what the ticket is asking for;
-2. fetches the latest remote integration branch (`develop`, else `dev`) and records its SHA;
-3. finds the project's `plans/` repo by walking up from the working directory. If there is none,
-   it creates one at the project root and keeps it out of the product repo with
-   `.git/info/exclude`;
-4. researches the code at that SHA and fills every mandatory section of `template.md`;
-5. writes `plans/<ticket-id>-<slug>.md` and reports the open questions.
+## 🎛 Customise
 
-It never creates the branch, commits or pushes. Those stay your call.
+**Conventions.** The template assumes the conventions below. Change template §0 if your team's
+differ.
 
-## Conventions it assumes
+| | Convention |
+|---|---|
+| Branch | `feature/<TICKET-ID>-<lowercase-hyphen-description>`, from `origin/develop` |
+| Commit | `<TICKET-ID> <Sentence case imperative description>`, under 72 characters, no trailing period |
+| Shape | One ticket · one branch · one commit per step · one PR |
 
-The template follows these conventions. Adapt template §0 if your team's differ:
+**Model roles.** The "Who does what" section of `SKILL.md` is written for Claude Code:
 
-- Branches: `feature/<TICKET-ID>-<lowercase-hyphen-description>`, branched from `origin/develop`.
-- Commits: `<TICKET-ID> <Sentence case imperative description>`, under 72 characters, with no
-  trailing period.
-- One ticket, one branch, one commit per step, one PR.
+| Role | In Claude Code | In any other agent |
+|---|---|---|
+| Plans and reviews | Fable, else Opus | Your strongest model |
+| Builds each step | Sonnet at high effort, as a subagent | A cheaper capable model, as a subagent if your agent has them |
+| No subagents? | | The agent builds each step itself, reviews the whole diff and re-runs the step's Verify line before committing |
 
-The model roles (Fable plans and reviews, with Opus as the fallback; Sonnet at high effort builds)
-are set in the "Who does what" section of `SKILL.md`, written in Claude Code terms. In another
-agent, read them as roles: your strongest model plans and reviews, and a cheaper capable model (a
-subagent, if your agent has them) builds one step at a time. If your agent has no subagents, it
-builds each step itself, then reviews the whole diff and re-runs the step's Verify line before
-committing. Edit that section to match the models you have.
+Edit that section to match the models you have.
 
-## Layout
+## 🗂 Repository layout
 
 ```
 .claude-plugin/
-  plugin.json          plugin manifest
-  marketplace.json     lets this repo be added as a plugin marketplace
+├── plugin.json          Claude Code plugin manifest
+└── marketplace.json     lets this repo be added as a plugin marketplace
 skills/implementation-plan/
-  SKILL.md             the skill's instructions
-  template.md          the plan template; every ">" line is an authoring rule
+├── SKILL.md             the skill's instructions
+└── template.md          the plan template; every ">" line is an authoring rule
 ```
 
-## Licence
+## 📄 License
 
-[MIT](LICENSE)
+[MIT](LICENSE): free to use, change and share.
