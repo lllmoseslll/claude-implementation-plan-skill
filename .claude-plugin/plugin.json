@@ -1,6 +1,6 @@
 {
   "name": "implementation-plan",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "An Agent Skill (Claude Code, Codex, Antigravity and more) that writes a researched, verifiable implementation plan for one ticket: verified file:line context, decisions with rejected alternatives, one-commit steps with Verify lines, risks, end-to-end verification and a session log.",
   "author": {
     "name": "lllmoseslll",

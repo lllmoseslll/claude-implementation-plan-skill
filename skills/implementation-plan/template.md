@@ -36,6 +36,8 @@ prompts with model selection, and a Session log appended per step.
 | Steps in this plan | `<n>` — one commit each |
 | Reviewers | `<at least one team member — not the author>` |
 | AI co-author trailers | `<none | as configured>` — declare it once here, apply it to every commit |
+| Reviewer model | `<model>` — plans, decides and reviews every step (e.g. the latest Fable in Claude Code, `pro` in Antigravity) |
+| Implementer model | `<model and effort>` — builds each step (e.g. the latest Sonnet at high effort in Claude Code, `flash` in Antigravity) |
 
 ### 0.1 Branch rules (ruleset-enforced)
 
@@ -213,11 +215,11 @@ build by the above.\>
 >   deliverable** and the feature is incidental.
 > - Where a step must not start before an Open question is answered, put
 >   **Confirm \<Dn\>'s open question before starting.** in bold in the step body.
-> - **Write each step so Sonnet can build it from the text alone** (it implements every step;
->   the planner and reviewer are Fable, else Opus). Name the files, the functions, the exact
->   behaviour, the tests with their negatives, and what not to touch. A choice belongs in §3, not in
->   the step. A step that needs judgment to build is split: what Sonnet builds, then what the
->   reviewer judges.
+> - **Write each step so the implementer can build it from the text alone** (it builds every
+>   step; the reviewer plans and reviews — both models are named in §0). Name the files, the
+>   functions, the exact behaviour, the tests with their negatives, and what not to touch. A choice
+>   belongs in §3, not in the step. A step that needs judgment to build is split: what the
+>   implementer builds, then what the reviewer judges.
 > - Steps are numbered once and never renumbered. If a step is added late, it takes the next free
 >   number and sits in its logical phase — and its Session log entry opens by explaining why the
 >   number is out of sequence.
@@ -295,25 +297,29 @@ commands this repo uses, green\>.
 
 > **Rules for this section.**
 > - One numbered entry per step, in landing order — this is the list someone works down.
-> - Format: Sonnet (high) → **reviewer** · `<TICKET-ID> <Sentence case commit message>` — Step
->   \<n\> (\<what the reviewer checks, usually a Risk reference\>).
-> - **Every step is implemented by a Sonnet subagent at high effort** (`model: "sonnet"`,
->   `effort: "high"`), briefed with the step, its Verify line, its commit message and the Context
->   and Decisions it cites. It does not commit, push or decide.
-> - **The reviewer is the latest Fable, else the latest Opus.** It reads the whole diff, re-runs the
->   Verify line, checks the agent's claims against the code, and commits.
-> - **Mark a risky step "+ advisor"**: stock or money arithmetic, isolation and permission
+> - Format: Implementer → **Reviewer** · `<TICKET-ID> <Sentence case commit message>` — Step
+>   \<n\> (\<what the reviewer checks, usually a Risk reference\>). Use the role names; the models
+>   are the ones recorded in §0.
+> - **Every step is built by the implementer** (in its own subagent where the agent supports it),
+>   briefed with the step, its Verify line, its commit message and the Context and Decisions it
+>   cites. It does not commit, push or decide. If the agent has no subagents, the same session builds
+>   the step and then reviews it as the reviewer before committing.
+> - **The reviewer** reads the whole diff, re-runs the Verify line, checks the implementer's claims
+>   against the code, and commits.
+> - **Mark a risky step "+ second opinion"**: stock or money arithmetic, isolation and permission
 >   boundaries, migrations and anything that can silently destroy data, security, defaults that
->   contradict a specification, production. Sonnet still builds it; the reviewer consults the
->   advisor (or a Fable/Opus helper) before committing, and the parenthetical says what to check.
+>   contradict a specification, production. The implementer still builds it; before committing, the
+>   reviewer gets a second opinion (the agent's advisor tool if it has one, else a fresh subagent on
+>   the reviewer model asked for a diagnosis only, else a second independent review pass), and the
+>   parenthetical says what to check.
 > - A step that is judgment rather than building (a browser walk against designs, a review, a
->   release decision) says which part Sonnet runs and which part the reviewer decides.
+>   release decision) says which part the implementer runs and which part the reviewer decides.
 > - Where a step is gated on an answer, put **confirm \<x\> first** in bold in the parenthetical.
 > - The commit message here is the *exact* string that will be committed. Check it against §0.2.
 
-1. Sonnet (high) → **Fable / Opus + advisor** · `<TICKET-ID> <Sentence case description>` — Step 1
+1. Implementer → **Reviewer + second opinion** · `<TICKET-ID> <Sentence case description>` — Step 1
    (\<what the review must prove\>).
-2. Sonnet (high) → Fable / Opus · `<TICKET-ID> <Sentence case description>` — Step 2 (\<…\>).
+2. Implementer → Reviewer · `<TICKET-ID> <Sentence case description>` — Step 2 (\<…\>).
 3. \<…\>
 
 ---
@@ -328,8 +334,9 @@ commands this repo uses, green\>.
 >   count, with before/after totals so the delta is checkable.
 > - **Record departures from the plan explicitly.** If a Decision's *mechanism* turned out to be
 >   impossible, say so, say what replaced it, and say whether the Decision's *intent* survived.
-> - Say who built and who reviewed the step (e.g. "Sonnet 5.5 high; reviewed by Fable 5.2"), what
->   the review changed or sent back, and whether the advisor was consulted.
+> - Say which models built and reviewed the step, by their real names (e.g. "built by Sonnet 5.5
+>   high; reviewed by Fable 5.2"), what the review changed or sent back, and whether a second
+>   opinion was taken.
 > - Record work done that the plan did not ask for, marked as such.
 > - Record environment traps that will bite the next person (toolchain versions, a red suite that is
 >   not a real failure, a service that must be running).
@@ -400,10 +407,10 @@ is already documented elsewhere — the next person reads this file.\>
 
 **Per step, before committing**
 
-- [ ] Built by a Sonnet (high) subagent from the step's text; anything it could not build without
+- [ ] Built by the implementer (§0) from the step's text; anything it could not build without
       deciding came back as a question, not a guess
-- [ ] Reviewed by Fable (else Opus): the whole diff read, the agent's claims checked against the code;
-      a risky step ("+ advisor" in §7) also reviewed with the advisor
+- [ ] Reviewed by the reviewer (§0): the whole diff read, the implementer's claims checked against
+      the code; a risky step ("+ second opinion" in §7) also had its second opinion
 - [ ] Tests added, not assumed
 - [ ] The step's own Verify line actually run by the reviewer, not reasoned about
 - [ ] `RUNNING.md` and any status docs updated in this same commit

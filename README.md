@@ -2,15 +2,20 @@
 
 # 📐 implementation-plan
 
+### The AI coding agent skill that plans before it codes
+
 **Turn one ticket into a researched, verifiable implementation plan,
 checked against your real code before a single line is written.**
+
+For Claude Code · OpenAI Codex · Google Antigravity · Gemini CLI · Cursor · GitHub Copilot · OpenCode
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Agent Skill](https://img.shields.io/badge/Agent%20Skill-SKILL.md-8A2BE2)](https://agentskills.io)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757)](#claude-code)
 [![Works with 7+ agents](https://img.shields.io/badge/works%20with-7%2B%20agents-2ea44f)](#install)
+[![GitHub stars](https://img.shields.io/github/stars/lllmoseslll/claude-implementation-plan-skill?style=flat&logo=github)](https://github.com/lllmoseslll/claude-implementation-plan-skill/stargazers)
 
-[Quick start](#quick-start) · [What you get](#what-you-get) · [How it works](#how-it-works) · [Install](#install) · [Use](#use) · [Customise](#customise)
+[Quick start](#quick-start) · [Why](#why) · [What you get](#what-you-get) · [How it works](#how-it-works) · [Install](#install) · [Use](#use) · [FAQ](#faq)
 
 </div>
 
@@ -22,9 +27,6 @@ rejected, and every step is one commit with a check you can run.
 
 The plan is written to your project's private `plans/` repo and leaves nothing for the implementer
 to guess. A cheaper model can build it step by step while a stronger one reviews each commit.
-
-**Works with:** Claude Code · OpenAI Codex · Google Antigravity · Gemini CLI · Cursor · GitHub
-Copilot · OpenCode, and any other agent that reads `SKILL.md` skills.
 
 <a id="quick-start"></a>
 
@@ -39,6 +41,22 @@ Then ask your agent:
 > Write an implementation plan for PROJ-123
 
 Using Claude Code? You can also install it as a plugin. See [Claude Code](#claude-code).
+
+<a id="why"></a>
+
+## 🤔 Why not just ask your agent for a plan?
+
+You can. Here is what usually comes back, next to what this skill produces:
+
+| | A plan you get by asking | A plan from this skill |
+|---|---|---|
+| **Grounded in** | The model's memory of your code | `file:line` citations, read at a fresh `origin/develop` SHA |
+| **Decisions** | Picked silently | Numbered, each with the alternative it rejected |
+| **Unknowns** | Guessed | Open questions, each with a safe default and the step it blocks |
+| **Steps** | "Implement the feature" | One commit each, with the exact message and a **Verify:** line |
+| **Risks** | A generic list | Tied to steps, with a cut line for when time runs out |
+| **After the build** | Forgotten | A Session log of what the plan got wrong and the tests that prove the fix |
+| **Who can build it** | Only the model that wrote it | A cheaper model, step by step, with a stronger one reviewing each commit |
 
 <a id="what-you-get"></a>
 
@@ -274,15 +292,74 @@ differ.
 | Commit | `<TICKET-ID> <Sentence case imperative description>`, under 72 characters, no trailing period |
 | Shape | One ticket · one branch · one commit per step · one PR |
 
-**Model roles.** The "Who does what" section of `SKILL.md` is written for Claude Code:
+**Model roles.** The skill names two roles, not models, so it works the same in every agent:
 
-| Role | In Claude Code | In any other agent |
-|---|---|---|
-| Plans and reviews | Fable, else Opus | Your strongest model |
-| Builds each step | Sonnet at high effort, as a subagent | A cheaper capable model, as a subagent if your agent has them |
-| No subagents? | | The agent builds each step itself, reviews the whole diff and re-runs the step's Verify line before committing |
+| Role | Does | Claude Code | Codex | Antigravity | Any other agent |
+|---|---|---|---|---|---|
+| **Reviewer** | Plans, decides, reviews each step | Latest Fable, else Opus | Your strongest model, high reasoning | `pro` | Strongest model it offers |
+| **Implementer** | Builds one step at a time | Latest Sonnet, high effort | A faster model, or the same one | `flash` | A cheaper capable model |
 
-Edit that section to match the models you have.
+At the start of a plan the agent picks a real model for each role and records both in the plan's
+§0. The rest of the plan says *reviewer* and *implementer*, so it stays correct if the models
+change. To choose your own models, name them in your request or in your project's `CLAUDE.md`,
+`AGENTS.md` or `GEMINI.md`; that wins over the defaults. An agent with no subagents builds each
+step itself, then reviews it as the reviewer before committing.
+
+<a id="faq"></a>
+
+## ❓ FAQ
+
+<details>
+<summary><b>Does it work without Claude?</b></summary>
+
+Yes. It is a standard [Agent Skill](https://agentskills.io) (`SKILL.md`), so Codex, Antigravity,
+Gemini CLI, Cursor, GitHub Copilot and OpenCode can all load it. The model roles adapt to the
+agent you run it in.
+
+</details>
+
+<details>
+<summary><b>Will it change my code or push anything?</b></summary>
+
+No. It reads your code and writes one Markdown file to your `plans/` repo. It never creates the
+branch, commits or pushes; those stay your call.
+
+</details>
+
+<details>
+<summary><b>Where does the plan go? Will it end up in my product repo?</b></summary>
+
+In a `plans/` folder that is its own private git repo. If the project has none, the skill creates
+one at the project root and keeps it out of your product repo's git with `.git/info/exclude`, so
+your `.gitignore` is not touched.
+
+</details>
+
+<details>
+<summary><b>My team doesn't use Jira, <code>develop</code> or this commit format.</b></summary>
+
+Change template §0 to match. The ticket can come from any tracker, the integration branch can be
+`dev` or whatever your repo names, and the commit rules are one table.
+
+</details>
+
+<details>
+<summary><b>Is it free to use at work?</b></summary>
+
+Yes. It is MIT licensed: use it, change it and share it, in personal or commercial projects.
+
+</details>
+
+## 🤝 Contributing
+
+Ideas, bug reports and pull requests are welcome. [Open an issue](https://github.com/lllmoseslll/claude-implementation-plan-skill/issues)
+to say what worked, what didn't, or which agent you'd like supported next.
+
+<div align="center">
+
+**If this saved you a bad plan, a ⭐ helps other people find it.**
+
+</div>
 
 ## 🗂 Repository layout
 

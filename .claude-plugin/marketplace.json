@@ -9,7 +9,7 @@
       "name": "implementation-plan",
       "source": "./",
       "description": "Writes a researched, verifiable implementation plan for one ticket, based on the latest remote integration branch.",
-      "version": "1.0.0"
+      "version": "1.1.0"
     }
   ]
 }

@@ -12,39 +12,67 @@ starting — it is the authority on section content, and every `>` line in it is
 Below, a bare `§n` is a section of this file; `template §n` is a section of the template and of the
 finished plan.
 
-## Who does what: a stronger model plans and reviews, Sonnet builds
+## Who does what: the strongest model plans and reviews, a cheaper model builds
 
-Plans are made by the strongest model available, and implementation is done by Sonnet, which does
-well when the task has been defined well first.
+Plans are made by the strongest model available, and each step is built by a cheaper, capable
+model, which does well when the task has been defined well first. This skill runs in any agent that
+reads `SKILL.md` skills, so it names **roles**, not models:
 
-- **Planner, decider and reviewer: the latest Fable** (today `claude-fable-5-2`). When Fable is
-  not available (the plan does not offer it, or a call with it is refused), use **the latest Opus**,
-  and say once which model ran it. This model writes the plan (this skill), answers the questions
+- **Reviewer**: plans, decides and reviews. It writes the plan (this skill), answers the questions
   that come up during the build, judges findings (a browser walk, a contrast failure, a bug that is
-  or is not one) and reviews every step before it is committed. If the session itself is not on
-  that model, hand the work to a subagent with `model: "fable"` (or `"opus"`).
-- **Implementer: Sonnet at high effort.** Every step of the plan is built by a subagent started
-  with `model: "sonnet"` and `effort: "high"`, one step per agent, one agent at a time unless the
-  machine has room for more. Its brief is the step itself: the step text, its Verify line, its
-  exact commit message, the Context items and Decisions it cites, the files to read, and what not
-  to touch. It builds, runs the step's Verify line, and reports. It does not commit, push, decide
-  an open question or change a Decision. When it hits one, it stops and reports.
-- **Every step is reviewed before its commit.** The reviewer reads the whole diff, not the agent's
-  summary, re-runs the step's Verify line itself, checks every claim the agent wrote into code
-  comments and the Session log against the code, and only then commits. Anything wrong goes back to
-  the same agent with the reason (SendMessage), or is fixed by the reviewer and noted in the
-  Session log.
-- **Risky steps keep Sonnet as the builder but get a harder review:** money, data isolation and
-  permissions, migrations and anything that can destroy data, security, production. The reviewer
-  consults the advisor (or a Fable/Opus helper agent) before that commit, and the step's §7 entry
+  or is not one) and reviews every step before it is committed.
+- **Implementer**: builds one step at a time from the plan's text.
+
+### Pick the models before you write the plan
+
+Resolve each role to a real model once, at the start, and record both in template §0
+("Reviewer model" and "Implementer model"). Everywhere else, the plan says *reviewer* and
+*implementer*, never a model name, so it stays correct if the models change.
+
+1. **The user or the project says so:** a model named in the request, or in the project's agent
+   instructions file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md` or the agent's equivalent), wins.
+2. **Otherwise use the default for the agent you are running in:**
+
+   | Agent | Reviewer | Implementer | How the implementer is started |
+   |---|---|---|---|
+   | Claude Code | The latest Fable; if it is not available, the latest Opus | The latest Sonnet at high effort | Agent tool with `model: "sonnet"`, `effort: "high"` |
+   | OpenAI Codex | Your strongest model at high reasoning effort | A faster model, or the same one at lower effort | A subagent; set its model in `.codex/agents/<name>.toml` (`model`, `model_reasoning_effort`), otherwise it inherits yours |
+   | Google Antigravity | `pro` | `flash`, or `pro` for a hard step | A subagent via `define_subagent` / `invoke_subagent` with `model` |
+   | Any other agent | The strongest model it offers | A cheaper capable model | Its subagent feature, if it has one |
+
+3. **A model is not available** (the account does not offer it, or a call with it is refused):
+   use the next strongest one for that role and say once which model ran it.
+4. **The session is not on the reviewer model:** hand reviewer work (planning, reviews, hard
+   judgments) to a subagent started on the reviewer model, where the agent allows it.
+
+### How the work is split
+
+- **Implementer: one step per agent,** one agent at a time unless the machine has room for more.
+  Its brief is the step itself: the step text, its Verify line, its exact commit message, the
+  Context items and Decisions it cites, the files to read, and what not to touch. It builds, runs
+  the step's Verify line, and reports. It does not commit, push, decide an open question or change a
+  Decision. When it hits one, it stops and reports.
+- **No subagents?** If the agent cannot start subagents, it builds each step itself, then switches
+  to the reviewer's checks below before committing. The roles stay separate even when one model
+  plays both.
+- **Every step is reviewed before its commit.** The reviewer reads the whole diff, not the
+  implementer's summary, re-runs the step's Verify line itself, checks every claim the implementer
+  wrote into code comments and the Session log against the code, and only then commits. Anything
+  wrong goes back to the same implementer with the reason (in Claude Code, `SendMessage`; otherwise
+  the agent's way of continuing a subagent), or is fixed by the reviewer and noted in the Session log.
+- **Risky steps keep the implementer as the builder but get a second opinion:** money, data
+  isolation and permissions, migrations and anything that can destroy data, security, production.
+  Before that commit, the reviewer asks for a second opinion, using the first of these that exists:
+  the agent's advisor tool (Claude Code's `advisor`), a fresh subagent on the reviewer model asked
+  for a diagnosis only, or a second independent review pass of the whole diff. The step's §7 entry
   says so.
-- **Stuck:** if the Sonnet agent fails the same Verify check twice, the reviewer diagnoses it (with
-  the advisor when attached) before a third attempt, and either rewrites the brief or takes the step
-  over itself. The Session log says which.
-- **Because Sonnet builds what the plan says, the plan must leave it nothing to decide.** Every
-  choice is a Decision in template §3 or an Open question with a gating step; a step that needs
-  judgment to build ("make it look right") is split into what Sonnet can build and what the
-  reviewer judges.
+- **Stuck:** if the implementer fails the same Verify check twice, the reviewer diagnoses it (with
+  a second opinion when one is available) before a third attempt, and either rewrites the brief or
+  takes the step over itself. The Session log says which.
+- **Because the implementer builds what the plan says, the plan must leave it nothing to decide.**
+  Every choice is a Decision in template §3 or an Open question with a gating step; a step that
+  needs judgment to build ("make it look right") is split into what the implementer can build and
+  what the reviewer judges.
 
 ## 1. Get the ticket code
 
@@ -68,7 +96,7 @@ facts and branch separately in template §0. The shared plans repo is never a pr
 
 **Plans are always based on the latest remote integration branch**, never on a stale local copy.
 First identify the integration branch (`develop` if it exists on the remote, otherwise the branch
-the repo's `CLAUDE.md` or docs name, e.g. `dev`; never `main` for feature work). Then fetch — a
+the repo's agent instructions file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) or docs name, e.g. `dev`; never `main` for feature work). Then fetch — a
 read-only operation, no push — and record the real values; they go in template §0:
 
 ```
@@ -110,7 +138,7 @@ parent for it:
 d=$(pwd); while :; do [ -d "$d/plans/.git" ] && { echo "$d/plans"; break; }; p=$(dirname "$d"); [ "$p" = "$d" ] && break; d=$p; done
 ```
 
-A location stated in the project's `CLAUDE.md` (root or repo), e.g. "plans live in `../plans/`",
+A location stated in the project's agent instructions file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`; root or repo), e.g. "plans live in `../plans/`",
 wins over the search.
 
 - **If a plans repo is found, the plan goes there — always**, even when the skill was invoked from
@@ -174,14 +202,16 @@ Copy `template.md`'s structure. The plan is filled when:
   citations, a rejected alternative per Decision, a gating step per Open question, a Verify line
   and exact commit message per step, every commit message checked against template §0.2, and the
   cut line named in Risks;
-- every step can be built by Sonnet from its text alone, and template §7 names, per step, the
-  implementer (Sonnet, high), the reviewer (Fable, else Opus) and, for a risky step, the advisor
-  review before commit (see "Who does what").
+- template §0 records the reviewer and implementer models chosen under "Pick the models", and
+  no other section names a model;
+- every step can be built by the implementer from its text alone, and template §7 names, per
+  step, the implementer, the reviewer and, for a risky step, the second opinion before commit (see
+  "Who does what").
 
 Three things the template leaves to you:
 
 - Template §0's "AI co-author trailers" row is **`none`** unless the project's own rules (its
-  `CLAUDE.md` or contribution guide) configure trailers — then declare them as configured.
+  agent instructions file or contribution guide) configure trailers — then declare them as configured.
 - Template §8 Session log starts empty with just its heading; it is appended per step as the work
   lands, in the same commit as that step's work.
 - Where a decision needs an answer you do not have, it is an **Open question** with the
